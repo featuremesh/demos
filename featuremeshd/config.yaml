@@ -1,0 +1,76 @@
+proxy:
+  enabled: true
+  listeners:
+    http:
+      address: "0.0.0.0:10080"
+  routes:
+    - domain: "bigquery.googleapis.com"
+      target:
+        address: "bigquery.googleapis.com:443"
+        tls: true
+      middlewares:
+        - name: debug
+          tags: ["ingress"]
+          config: '{"level":"Body"}'
+        - name: bigquery
+        - name: debug
+          tags: ["egress"]
+          config: '{"level":"Body"}'
+    - domain: "www.googleapis.com"
+      target:
+        address: "www.googleapis.com:443"
+        tls: true
+      middlewares:
+        - name: debug
+          config: '{"level":"Body"}'
+    - domain: "trino:8080"
+      target:
+        address: "trino:8080"
+      middlewares:
+        - name: debug
+          tags: ["ingress"]
+          config: '{"level":"Body"}'
+        - name: trino
+        - name: debug
+          tags: ["egress"]
+          config: '{"level":"Body"}'
+
+serving:
+  enabled: true
+  sources:
+    poll_interval: "60s"
+    reconcile_interval: "30s"
+    reconcile_initial_delay: "10s"
+  http:
+    enabled: true
+    address: "0.0.0.0:10090"
+    debug_endpoints: true
+  grpc:
+    enabled: true
+    address: "0.0.0.0:10091"
+  flight:
+    enabled: true
+    address: "0.0.0.0:15000"
+    catalog:
+      poll_interval: "5s"
+
+mcp:
+  enabled: true
+  address: "0.0.0.0:10050"
+  serving_endpoint: "http://0.0.0.0:10090/"
+
+health:
+  enabled: true
+  address: "0.0.0.0:10001"
+
+telemetry:
+  service_name: "featuremeshd"
+  resource_attributes:
+    deployment.environment: "local"
+    service.version: "0.1.0"
+  tracing:
+    sampling: 1
+    exporters:
+      otlp:
+        enabled: false
+

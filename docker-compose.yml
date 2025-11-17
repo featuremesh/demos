@@ -1,0 +1,185 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: featuremesh-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-featuremesh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-featuremesh}
+      POSTGRES_DB: ${POSTGRES_DB:-featuremesh}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - featuremesh-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U featuremesh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:latest
+    container_name: featuremesh-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - featuremesh-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Trino Query Engine
+  trino:
+    image: trinodb/trino:477
+    container_name: featuremesh-trino
+    restart: unless-stopped
+    ports:
+      - "${TRINO_PORT:-8081}:8080"
+    volumes:
+      - ./trino/conf:/etc/trino
+    networks:
+      - featuremesh-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/v1/info || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # FastAPI Service
+  fastapi:
+    image: python:3.11-slim
+    container_name: featuremesh-fastapi
+    restart: unless-stopped
+    working_dir: /app
+    command: >
+      sh -c "apt-get update -qq && apt-get install -y -qq curl &&
+             pip install --quiet fastapi uvicorn &&
+             python /app/server.py"
+    ports:
+      - "${FASTAPI_PORT:-8010}:8010"
+    volumes:
+      - ./fastapi:/app
+    networks:
+      - featuremesh-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8010/hello?name=health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # FeatureMesh Daemon
+  featuremeshd:
+    image: ${FEATUREMESHD_IMAGE}
+    container_name: featuremeshd
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "10080:10080"   # HTTP Proxy
+      - "19901:9901"    # Admin
+      - "10090:10090"   # Serving HTTP
+      - "10050:10050"   # MCP
+      - "15000:15000"   # Arrow Flight
+    volumes:
+      - ./featuremeshd/config.yaml:/config.yaml
+    command:
+      - --registry-url=${FEATUREMESH_REGISTRY_URL}
+      - --registry-token=${FEATUREMESH_REGISTRY_TOKEN}
+      - --config-path=/config.yaml
+      - --log-format=pretty
+      - --log-level=info
+      - --proxy-envoy-log-level=info
+    networks:
+      - featuremesh-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      trino:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/bin/featuremeshd", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Jupyter Lab
+  jupyter:
+    container_name: featuremesh-jupyter
+    restart: unless-stopped
+    build:
+      context: ./jupyter
+      dockerfile: Dockerfile
+    ports:
+      - "${JUPYTER_PORT:-8881}:8880"
+      - "8100:8100"  # MCP Server
+      - "8101:8101"  # API Server
+    volumes:
+      - ./jupyter/notebooks:/home/jovyan/featuremesh-demos/notebooks
+      - ./jupyter/libs:/home/jovyan/featuremesh-demos/libs
+      - ./jupyter/files:/files
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - PYTHONPATH=/home/jovyan/featuremesh-demos:/home/jovyan/featuremesh-demos/libs
+      # Database connections
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-featuremesh}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-featuremesh}
+      - POSTGRES_DATABASE=${POSTGRES_DB:-featuremesh}
+      - DB_SSL_MODE=disable
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_SOCKET_TIMEOUT=5
+      # FeatureMesh
+      - FEATUREMESH_REGISTRY_URL=${FEATUREMESH_REGISTRY_URL}
+      - FEATUREMESH_SERVING_URL=http://featuremeshd:10090
+      - FEATUREMESH_REGISTRY_TOKEN=${FEATUREMESH_REGISTRY_TOKEN}
+      - FEATUREMESH_IDENTITY_TOKEN=${FEATUREMESH_IDENTITY_TOKEN:-}
+      # ML Services
+      - ML_CHURN_ENDPOINT=http://fastapi:8010/churn-v3/predict
+      - ML_HELLO_ENDPOINT=http://fastapi:8010/hello
+    networks:
+      - featuremesh-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      fastapi:
+        condition: service_healthy
+      featuremeshd:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8880/api || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  featuremesh-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+
