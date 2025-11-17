@@ -1,0 +1,45 @@
+[project]
+name = "featuremesh-demos-jupyter"
+version = "0.0.0"
+description = "FeatureMesh demos and examples"
+authors = []
+requires-python = ">=3.12"
+dependencies = [
+    "Jinja2>=3.1.1",
+    "requests>=2.27.1",
+    "pandas>=1.4.2",
+    "numpy>=1.22.3",
+    "trino>=0.312",
+    "duckdb>=1.1.0",
+    "datafusion>=36.0.0",
+    "polars>=1.7.12",
+    "cachetools>=5.2.0",
+    "defusedxml>=0.7.1",
+    "jsbeautifier>=1.15.1",
+    "rich>=13.7.1",
+    "ipykernel>=6.29.5",
+    "redis>=5.2.1",
+    "matplotlib>=3.10.1",
+    "seaborn>=0.13.2",
+    "sqlglot>=26.12.1",
+    "google-cloud-bigquery>=3.31.0",
+    "google-cloud-bigquery-storage>=2.30.0",
+    "google-auth>=2.38.0",
+    "db-dtypes>=1.4.2",
+    "jupytext>=1.16.0",
+    "psycopg2-binary>=2.9.0",
+    "featuremesh>=0.1.1",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+    "python-dotenv>=1.0.0",
+    "sqlalchemy>=2.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
