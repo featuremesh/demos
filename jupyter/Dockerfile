@@ -20,11 +20,6 @@ RUN runuser -u jovyan -- uv pip install --system -r /home/jovyan/work/pyproject.
 RUN chown -R jovyan:users /home/jovyan/work
 RUN python -m ipykernel install --name=uv-env --display-name "UV Environment"
 
-# Configure jupytext for automatic pairing
-RUN mkdir -p /home/jovyan/.jupyter && \
-    echo 'c.ContentsManager.default_jupytext_formats = "ipynb,py:percent"' > /home/jovyan/.jupyter/jupyter_notebook_config.py && \
-    chown -R jovyan:users /home/jovyan/.jupyter
-
 # Create libs directory structure
 RUN mkdir -p /home/jovyan/featuremesh-demos/libs/helpers && \
     chown -R jovyan:users /home/jovyan/featuremesh-demos

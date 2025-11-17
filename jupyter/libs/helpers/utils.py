@@ -66,3 +66,10 @@ def get_ml_service_config() -> dict:
         "hello_endpoint": getenv_or_raise("ML_HELLO_ENDPOINT"),
     }
 
+
+def get_bigquery_config() -> dict:
+    """Get BigQuery configuration from environment variables."""
+    return {
+        "project": getenv_or_raise("BIGQUERY_PROJECT"),
+    }
+

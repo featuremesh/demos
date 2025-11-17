@@ -132,6 +132,7 @@ services:
       - "8101:8101"  # API Server
     volumes:
       - ./jupyter/notebooks:/home/jovyan/featuremesh-demos/notebooks
+      - ./jupyter/libs:/home/jovyan/featuremesh-demos/libs
       - ./jupyter/files:/files
     environment:
       - JUPYTER_ENABLE_LAB=yes
