@@ -1,7 +1,10 @@
-"""Utility functions for FeatureMesh demos."""
-
 from typing import Any
+import re
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 def getenv_or_raise(var_name: str) -> str:
     """Get environment variable or raise if not found."""
@@ -18,9 +21,20 @@ def get_postgres_connection_string() -> str:
     user = getenv_or_raise("POSTGRES_USER")
     password = getenv_or_raise("POSTGRES_PASSWORD")
     database = getenv_or_raise("POSTGRES_DATABASE")
-    ssl_mode = os.getenv("DB_SSL_MODE", "disable")
+    ssl_mode = getenv_or_raise("DB_SSL_MODE")
 
     return f"postgresql://{user}:{password}@{host}:{port}/{database}?sslmode={ssl_mode}"
+
+
+def get_mysql_connection_string() -> str:
+    """Get MySQL connection string from environment variables."""
+    host = getenv_or_raise("MYSQL_HOST")
+    port = getenv_or_raise("MYSQL_PORT")
+    user = getenv_or_raise("MYSQL_USER")
+    password = getenv_or_raise("MYSQL_PASSWORD")
+    database = getenv_or_raise("MYSQL_DATABASE")
+
+    return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
 
 
 def get_redis_connection_config(port: int = None) -> dict:
@@ -32,8 +46,8 @@ def get_redis_connection_config(port: int = None) -> dict:
     host = getenv_or_raise("REDIS_HOST")
     if port is None:
         port = int(getenv_or_raise("REDIS_PORT"))
-    db = int(os.getenv("REDIS_DB", "0"))
-    socket_timeout = int(os.getenv("REDIS_SOCKET_TIMEOUT", "5"))
+    db = int(getenv_or_raise("REDIS_DB"))
+    socket_timeout = int(getenv_or_raise("REDIS_SOCKET_TIMEOUT"))
 
     return {"host": host, "port": port, "db": db, "socket_timeout": socket_timeout}
 
@@ -54,8 +68,20 @@ def get_featuremesh_config() -> dict:
         "registry.host": getenv_or_raise("FEATUREMESH_REGISTRY_URL"),
         "access.host": getenv_or_raise("FEATUREMESH_REGISTRY_URL"),
         "serving.host": getenv_or_raise("FEATUREMESH_SERVING_URL"),
-        "access_token": getenv_or_raise("FEATUREMESH_REGISTRY_TOKEN"),
-        "identity_token": os.getenv("FEATUREMESH_IDENTITY_TOKEN", ""),
+        "service_account_token": getenv_or_raise("FEATUREMESH_REGISTRY_TOKEN"),
+        "identity_token": getenv_or_raise("FEATUREMESH_IDENTITY_TOKEN"),
+    }
+
+
+def get_trino_config() -> dict:
+    """Get Trino configuration from environment variables."""
+    return {"host": "host.docker.internal", "port": 8081}
+
+
+def get_bigquery_config() -> dict:
+    """Get BigQuery configuration from environment variables."""
+    return {
+        "project": getenv_or_raise("BIGQUERY_PROJECT"),
     }
 
 
@@ -67,9 +93,30 @@ def get_ml_service_config() -> dict:
     }
 
 
-def get_bigquery_config() -> dict:
-    """Get BigQuery configuration from environment variables."""
-    return {
-        "project": getenv_or_raise("BIGQUERY_PROJECT"),
-    }
+def pprint(stuff, as_string: bool = False) -> str | None:
+    string = (
+        stuff if isinstance(stuff, str) else json.dumps(stuff, sort_keys=True, indent=4)
+    )
+    if as_string:
+        return string
+    else:
+        print(string)
+    return None
 
+
+def nprint(stuff: Any, num_lines: bool = True, as_string: bool = False) -> None | str:
+    try:
+        formatted_stuff = "\n".join(
+            [
+                ":  ".join([f"{nline+1:_>6}", line]) if num_lines else line
+                for nline, line in enumerate(textwrap.dedent(stuff).strip().split("\n"))
+            ]
+        )
+    except Exception:
+        formatted_stuff = f"(NON-FORMATED)\n\n{stuff}"
+
+    if as_string:
+        return formatted_stuff
+
+    print(f"\n{formatted_stuff}\n")
+    return None
