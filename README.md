@@ -11,7 +11,7 @@ This setup includes all the services you need to run FeatureMesh demos:
 - **PostgreSQL** - Relational database for feature storage
 - **Redis** - Cache for online features
 - **Trino** - Distributed SQL query engine for offline analytics
-- **FastAPI** - ML prediction service endpoints
+- **FastAPI** - HTTP endpoints
 
 ## Quick Start
 
@@ -20,15 +20,14 @@ Get up and running in 5 minutes!
 ### Prerequisites
 
 - Docker Desktop installed and running
-- At least 8GB RAM available for Docker
 - FeatureMesh credentials (go to https://console.featuremesh.com to get them)
 
 ### Step 1: Get Your Credentials
 
 You'll need:
 - `FEATUREMESHD_IMAGE` - The FeatureMesh daemon Docker image URL
-- `FEATUREMESH_REGISTRY_TOKEN` - Your service account token
-- `FEATUREMESH_IDENTITY_TOKEN` - Your identity token (optional, for project-specific access)
+- `FEATUREMESH_REGISTRY_TOKEN` - Your service account token for featuremeshd access to registry
+- `FEATUREMESH_IDENTITY_TOKEN` - Your identity token (optional, for project-specific access in notebooks)
 
 ### Step 2: Configure Environment
 
@@ -43,8 +42,8 @@ nano .env  # or use your favorite editor
 Update these lines in `.env`:
 ```bash
 FEATUREMESHD_IMAGE=your-image-url-here
-FEATUREMESH_REGISTRY_TOKEN=your-token-here
-FEATUREMESH_IDENTITY_TOKEN=your-identity-token-here  # optional
+FEATUREMESH_REGISTRY_TOKEN=your-token-here # service account token
+FEATUREMESH_IDENTITY_TOKEN=your-identity-token-here  # identity token
 ```
 
 ### Step 3: Start Everything
@@ -78,11 +77,10 @@ Once running, you can access:
 | Jupyter Lab | http://localhost:8881 | Interactive notebooks |
 | FeatureMesh Serving | http://localhost:10090 | HTTP API for queries |
 | FeatureMesh Proxy | http://localhost:10080 | Proxy for data sources |
-| FeatureMesh Admin | http://localhost:19901 | Admin interface |
 | Trino | http://localhost:8081 | Query engine UI |
 | PostgreSQL | localhost:5433 | Database (user: featuremesh, pass: featuremesh) |
 | Redis | localhost:6380 | Cache |
-| FastAPI | http://localhost:8010 | ML service |
+| FastAPI | http://localhost:8010 | HTTP endpoint |
 
 ## Verify Everything Works
 
@@ -91,7 +89,7 @@ Once running, you can access:
 docker compose ps
 ```
 
-You should see all services with "Up" or "healthy" status.
+You should see all services with "Healthy" status.
 
 ### Test FeatureMesh serving:
 ```bash
@@ -155,21 +153,6 @@ FASTAPI_PORT=8010
 JUPYTER_PORT=8881
 ```
 
-### Resource Limits
-
-To add resource limits, edit `docker-compose.yml` and add to any service:
-
-```yaml
-deploy:
-  resources:
-    limits:
-      cpus: '2'
-      memory: 4G
-    reservations:
-      cpus: '1'
-      memory: 2G
-```
-
 ## Troubleshooting
 
 ### Port already in use
@@ -202,11 +185,7 @@ docker info
    docker compose logs featuremeshd
    ```
 
-3. Verify Docker has enough resources:
-   - Docker Desktop → Settings → Resources
-   - Recommended: 8GB RAM, 4 CPUs
-
-4. Try rebuilding:
+3. Try rebuilding:
    ```bash
    docker compose down
    docker compose up -d --build
@@ -239,34 +218,6 @@ docker compose down --rmi all
 
 # Start fresh
 docker compose up -d
-```
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Docker Network                           │
-│                  (featuremesh-network)                       │
-│                                                              │
-│  ┌──────────┐      ┌─────────────┐      ┌──────────┐      │
-│  │ Jupyter  │─────▶│ FeatureMeshd│─────▶│ Registry │      │
-│  │   Lab    │      │   (Proxy)   │      │ (Remote) │      │
-│  └──────────┘      └─────────────┘      └──────────┘      │
-│       │                    │                                │
-│       │                    ├──────────┐                     │
-│       │                    │          │                     │
-│       ▼                    ▼          ▼                     │
-│  ┌──────────┐      ┌──────────┐  ┌──────┐                 │
-│  │ FastAPI  │      │PostgreSQL│  │Trino │                 │
-│  │(ML Svc)  │      │          │  │      │                 │
-│  └──────────┘      └──────────┘  └──────┘                 │
-│       │                    │                                │
-│       │                    ▼                                │
-│       │              ┌──────────┐                           │
-│       └─────────────▶│  Redis   │                           │
-│                      │          │                           │
-│                      └──────────┘                           │
-└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Next Steps
