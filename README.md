@@ -25,7 +25,6 @@ Get up and running in 5 minutes!
 ### Step 1: Get Your Credentials
 
 You'll need:
-- `FEATUREMESHD_IMAGE` - The FeatureMesh daemon Docker image URL
 - `FEATUREMESH_REGISTRY_TOKEN` - Your service account token for featuremeshd access to registry
 - `FEATUREMESH_IDENTITY_TOKEN` - Your identity token (optional, for project-specific access in notebooks)
 
@@ -41,7 +40,6 @@ nano .env  # or use your favorite editor
 
 Update these lines in `.env`:
 ```bash
-FEATUREMESHD_IMAGE=your-image-url-here
 FEATUREMESH_REGISTRY_TOKEN=your-token-here # service account token
 FEATUREMESH_IDENTITY_TOKEN=your-identity-token-here  # identity token
 ```
