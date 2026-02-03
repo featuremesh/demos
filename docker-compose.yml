@@ -132,6 +132,7 @@ services:
       - ./jupyter/notebooks:/home/jovyan/featuremesh-demos/notebooks
       - ./jupyter/libs:/home/jovyan/featuremesh-demos/libs
       - ./jupyter/files:/files
+      - ~/.config/gcloud:/home/jovyan/.config/gcloud:ro
     environment:
       - JUPYTER_ENABLE_LAB=yes
       - PYTHONPATH=/home/jovyan/featuremesh-demos:/home/jovyan/featuremesh-demos/libs
@@ -155,6 +156,8 @@ services:
       # ML Services
       - ML_CHURN_ENDPOINT=http://fastapi:8010/churn-v3/predict
       - ML_HELLO_ENDPOINT=http://fastapi:8010/hello
+      # BigQuery
+      - BIGQUERY_PROJECT=${BIGQUERY_PROJECT}
     networks:
       - featuremesh-network
     depends_on:
