@@ -1,10 +1,9 @@
 from typing import Any
 import re
 import os
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Environment variables are injected by Docker via env_file in docker-compose.yml
+# For local development outside Docker, create a .env file and use: load_dotenv()
 
 def getenv_or_raise(var_name: str) -> str:
     """Get environment variable or raise if not found."""
