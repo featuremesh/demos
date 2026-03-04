@@ -9,6 +9,7 @@ from enum import Enum
 from pathlib import Path
 from dataclasses import asdict
 import time
+import numpy as np
 
 import featuremesh
 
@@ -65,6 +66,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _numpy_safe(obj):
+    """Recursively convert numpy types to JSON-serializable Python types."""
+    if isinstance(obj, dict):
+        return {k: _numpy_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_numpy_safe(v) for v in obj]
+    if isinstance(obj, np.ndarray):
+        return _numpy_safe(obj.tolist())
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, (np.bool_,)):
+        return bool(obj)
+    return obj
 
 
 class BackendType(str, Enum):
@@ -124,7 +142,7 @@ def run_featureql_api(request: QueryRequest):
             if response.dataframe is not None:
                 response.dataframe = response.dataframe.to_dict(orient="records")
         
-        return JSONResponse(content=asdict(response))
+        return JSONResponse(content=_numpy_safe(asdict(response)))
 
     except Exception as e:
         # Debug: Print full exception details
