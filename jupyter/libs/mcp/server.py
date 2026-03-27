@@ -24,7 +24,7 @@ fm_config = get_featuremesh_config()
 
 access_token = fm_config['service_account_token']
 
-featuremesh.set_default('registry.host', fm_config['registry.host'])
+featuremesh.set_default('managed.host', fm_config['managed.host'])
 featuremesh.set_default('access.host', fm_config['access.host'])
 
 client_duckdb = featuremesh.OfflineClient(access_token, featuremesh.Backend.DUCKDB, query_duckdb)

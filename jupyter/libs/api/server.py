@@ -30,7 +30,7 @@ access_token = fm_config['service_account_token']
 # if not access_token_decoded.get('success', False):
 #     raise HTTPException(status_code=401, detail=f"Invalid access token: {access_token_decoded}")
 
-featuremesh.set_default('registry.host', fm_config['registry.host'])
+featuremesh.set_default('managed.host', fm_config['managed.host'])
 featuremesh.set_default('access.host', fm_config['access.host'])
 
 client_duckdb = featuremesh.OfflineClient(
