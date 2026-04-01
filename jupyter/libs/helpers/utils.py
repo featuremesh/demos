@@ -64,7 +64,7 @@ def get_redis_connection_string(port: int = None) -> str:
 def get_featuremesh_config() -> dict:
     """Get FeatureMesh service configuration from environment variables."""
     return {
-        "registry.host": getenv_or_raise("FEATUREMESH_REGISTRY_URL"),
+        "managed.host": getenv_or_raise("FEATUREMESH_REGISTRY_URL"),
         "access.host": getenv_or_raise("FEATUREMESH_REGISTRY_URL"),
         "serving.host": getenv_or_raise("FEATUREMESH_SERVING_URL"),
         "service_account_token": getenv_or_raise("FEATUREMESH_REGISTRY_TOKEN"),

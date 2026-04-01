@@ -27,7 +27,7 @@ access_token = fm_config['service_account_token']
 featuremesh.set_default('managed.host', fm_config['managed.host'])
 featuremesh.set_default('access.host', fm_config['access.host'])
 
-client_duckdb = featuremesh.OfflineClient(access_token, featuremesh.Backend.DUCKDB, query_duckdb)
+client_duckdb = featuremesh.BatchClient(access_token, featuremesh.Backend.DUCKDB, query_duckdb)
 
 # Create an MCP server
 mcp = FastMCP(
