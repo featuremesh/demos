@@ -2,13 +2,10 @@ import os
 import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from enum import Enum
-from pathlib import Path
 from dataclasses import asdict
-import time
 import numpy as np
 
 import featuremesh
@@ -30,27 +27,31 @@ access_token = fm_config['service_account_token']
 # if not access_token_decoded.get('success', False):
 #     raise HTTPException(status_code=401, detail=f"Invalid access token: {access_token_decoded}")
 
-featuremesh.set_default('registry.host', fm_config['registry.host'])
-featuremesh.set_default('access.host', fm_config['access.host'])
 
-client_duckdb = featuremesh.OfflineClient(
+# featuremesh.set_default('managed.host', fm_config['managed.host'])
+# featuremesh.set_default('access.host', fm_config['access.host'])
+featuremesh.set_default("registry", featuremesh.Registry.LOCAL)
+featuremesh.set_default("local.db_path", "tmp/test_project.db")
+
+client_duckdb = featuremesh.BatchClient(
     access_token, featuremesh.Backend.DUCKDB, query_duckdb
 )
-client_trino = featuremesh.OfflineClient(
-    access_token, featuremesh.Backend.TRINO, query_trino
-)
-client_bigquery = featuremesh.OfflineClient(
-    access_token, featuremesh.Backend.BIGQUERY, query_bigquery
-)
-client_datafusion = featuremesh.OfflineClient(
-    access_token, featuremesh.Backend.DATAFUSION, query_datafusion
-)
-client_online = featuremesh.OnlineClient(
-    access_token=access_token,
-)
-
-# decoded_token = featuremesh.decode_token(access_token)
-# logger.info(f"Decoded token: {decoded_token}")
+# client_trino = featuremesh.BatchClient(
+#     access_token, featuremesh.Backend.TRINO, query_trino
+# )
+# client_bigquery = featuremesh.BatchClient(
+#     access_token, featuremesh.Backend.BIGQUERY, query_bigquery
+# )
+# client_datafusion = featuremesh.BatchClient(
+#     access_token, featuremesh.Backend.DATAFUSION, query_datafusion
+# )
+# client_online = featuremesh.ServingClient(
+#     access_token=access_token,
+# )
+# query_featureql = lambda x: x
+# client_featureql = featuremesh.BatchClient(
+#     access_token, featuremesh.Backend.FEATUREQL, query_featureql
+# )
 
 app = FastAPI(
     title="FeatureQL Multi-Backend API",
@@ -91,6 +92,7 @@ class BackendType(str, Enum):
     BIGQUERY = "bigquery"
     DATAFUSION = "datafusion"
     ONLINE = "online"
+    FEATUREQL = "featureql"
 
 
 class OperationType(str, Enum):
@@ -114,14 +116,16 @@ def run_featureql_api(request: QueryRequest):
         # Route to appropriate client based on backend
         if request.backend == BackendType.DUCKDB:
             client = client_duckdb
-        elif request.backend == BackendType.TRINO:
-            client = client_trino
-        elif request.backend == BackendType.BIGQUERY:
-            client = client_bigquery
-        elif request.backend == BackendType.DATAFUSION:
-            client = client_datafusion
-        elif request.backend == BackendType.ONLINE:
-            client = client_online
+        # elif request.backend == BackendType.TRINO:
+        #     client = client_trino
+        # elif request.backend == BackendType.BIGQUERY:
+        #     client = client_bigquery
+        # elif request.backend == BackendType.DATAFUSION:
+        #     client = client_datafusion
+        # elif request.backend == BackendType.ONLINE:
+        #     client = client_online
+        # elif request.backend == BackendType.FEATUREQL:
+        #     client = client_featureql
         else:
             raise HTTPException(
                 status_code=400, detail=f"Unsupported backend: {request.backend}"
@@ -138,9 +142,8 @@ def run_featureql_api(request: QueryRequest):
             )
         logger.info(f"RESPONSE:\n{response}")
 
-        if response is not None:
-            if response.dataframe is not None:
-                response.dataframe = response.dataframe.to_dict(orient="records")
+        if response is not None and hasattr(response, 'dataframe') and response.dataframe is not None:
+            response.dataframe = response.dataframe.to_dict(orient="records")
         
         return JSONResponse(content=_numpy_safe(asdict(response)))
 
@@ -164,5 +167,5 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-
+    logger.info(f"Starting server on port 8101 with featuremesh version {featuremesh.__version__}")
     uvicorn.run(app, host="0.0.0.0", port=8101)
