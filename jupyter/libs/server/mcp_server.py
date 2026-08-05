@@ -6,15 +6,21 @@ import logging
 
 from featuremesh.server import create_batch_client_mcp
 
-from libs.server.shared import CLIENTS, SERVING_CLIENT, SQL_EXECUTOR
+from libs.server.shared import (
+    CLIENTS,
+    REQUEST_LOG_DIRECTORY,
+    SERVING_CLIENTS,
+    SQL_EXECUTOR,
+)
 
 log = logging.getLogger("mcp-server")
 
 mcp = create_batch_client_mcp(
     CLIENTS,
-    serving_client=SERVING_CLIENT,
+    serving_clients=SERVING_CLIENTS,
     logger=log,
     sql_executor=SQL_EXECUTOR,
+    request_log_directory=REQUEST_LOG_DIRECTORY,
     host="0.0.0.0",
     port=8100,
 )

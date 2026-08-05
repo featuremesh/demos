@@ -37,6 +37,7 @@ proxy:
 
 serving:
   enabled: true
+  local_refresh_enabled: true
   sources:
     poll_interval: "60s"
     reconcile_interval: "30s"

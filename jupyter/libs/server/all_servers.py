@@ -12,7 +12,14 @@ import logging
 import featuremesh
 from featuremesh.server import create_batch_client_server_bundle, run_batch_client_server_bundle
 
-from libs.server.shared import CLIENTS, SERVING_CLIENT, SQL_EXECUTOR
+from libs.server.shared import (
+    CAPABILITIES_NOTES,
+    CLIENTS,
+    REQUEST_LOG_DIRECTORY,
+    SERVING_CLIENTS,
+    SERVING_EXECUTORS,
+    SQL_EXECUTOR,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -21,7 +28,7 @@ logger = logging.getLogger("all-servers")
 
 _bundle = create_batch_client_server_bundle(
     CLIENTS,
-    serving_client=SERVING_CLIENT,
+    serving_clients=SERVING_CLIENTS,
     logger=logger,
     sql_executor=SQL_EXECUTOR,
     title="FeatureQL Multi-Backend API",
@@ -29,12 +36,14 @@ _bundle = create_batch_client_server_bundle(
         "Combined HTTP + MCP (single process). For production-style separation, "
         "use libs.server.api_server and libs.server.mcp_server in two processes."
     ),
-    version="2.1",
+    version="2.2",
     app_router_kwargs={
+        "request_log_directory": REQUEST_LOG_DIRECTORY,
         "health_server_label": "featureql-api",
+        "serving_executors": SERVING_EXECUTORS,
         "capabilities_notes": [
             "This is the combined all_servers process (HTTP 8101 + MCP thread 8100).",
-            "ServingClient (online): set SERVING_CLIENT in libs/server/shared.py.",
+            *CAPABILITIES_NOTES,
         ],
     },
 )

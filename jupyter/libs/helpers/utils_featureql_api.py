@@ -4,7 +4,7 @@ HTTP helpers for the local FeatureQL API server (BatchClient wrapper on :8101).
 Shared SSE parsing and three call styles: static JSON, streaming (silent), and live streaming.
 
 All three runners take ``url``, ``payload``, and ``timeout`` — use the full URL including path
-(e.g. ``.../8101/test`` vs ``.../8101/test_stream``).
+(e.g. ``.../8101/sltest`` vs ``.../8101/sltest_stream``).
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ def build_test_payload(
     force_no_schema: bool = True,
     **extra: Any,
 ) -> dict[str, Any]:
-    """Body for ``POST /test`` and ``POST /test_stream`` (``source`` = custom SHOW DOCS query)."""
+    """Body for ``POST /sltest`` and ``POST /sltest_stream`` (``source`` = custom SHOW DOCS query)."""
     payload: dict[str, Any] = {
         "backend": backend,
         "source": source,
@@ -44,7 +44,7 @@ def iter_test_stream_events(
     *,
     verify: bool = False,
 ) -> Iterator[dict[str, Any]]:
-    """Yield each SSE ``data:`` JSON object from a ``test_stream`` POST (chunk-safe)."""
+    """Yield each SSE ``data:`` JSON object from a ``POST /sltest_stream`` (chunk-safe)."""
     with requests.post(
         url,
         json=payload,
@@ -87,12 +87,11 @@ def run_static(
     timeout: int | float = 600,
     *,
     verify: bool = False,
-) -> dict[str, Any] | str:
-    """``POST`` to ``/test`` URL — single JSON body when the suite finishes (no streaming)."""
+) -> dict[str, Any]:
+    """``POST`` to a Batch API URL — return the JSON body (raises on non-2xx)."""
     response = requests.post(url, json=payload, timeout=timeout, verify=verify)
-    if response.status_code == 200:
-        return response.json()
-    return f"A non HTTP 200 response occurred: {response=}: {response.text}"
+    response.raise_for_status()
+    return response.json()
 
 
 def run_tests_streaming(
@@ -102,7 +101,7 @@ def run_tests_streaming(
     *,
     verify: bool = False,
 ) -> dict[str, Any]:
-    """``POST`` to ``/test_stream`` URL — consume SSE in memory; return the ``complete`` summary."""
+    """``POST`` to ``/sltest_stream`` URL — consume SSE in memory; return the ``complete`` summary."""
     for ev in iter_test_stream_events(url, payload, timeout, verify=verify):
         if ev.get("type") == "complete":
             return ev["result"]
@@ -117,7 +116,7 @@ def run_tests_streaming_live(
     verify: bool = False,
     on_event: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
-    """``POST`` to ``/test_stream`` — call ``on_event`` for each event (default: print); return summary."""
+    """``POST`` to ``/sltest_stream`` — call ``on_event`` for each event (default: print); return summary."""
     handler = on_event or _default_live_handler
     for ev in iter_test_stream_events(url, payload, timeout, verify=verify):
         handler(ev)

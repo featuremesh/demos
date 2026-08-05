@@ -1,9 +1,11 @@
 from typing import Any
-import re
+import json
 import os
+import textwrap
 
 # Environment variables are injected by Docker via env_file in docker-compose.yml
 # For local development outside Docker, create a .env file and use: load_dotenv()
+
 
 def getenv_or_raise(var_name: str) -> str:
     """Get environment variable or raise if not found."""
@@ -36,7 +38,7 @@ def get_mysql_connection_string() -> str:
     return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
 
 
-def get_redis_connection_config(port: int = None) -> dict:
+def get_redis_connection_config(port: int | None = None) -> dict:
     """Get Redis connection configuration from environment variables.
 
     Args:
@@ -51,30 +53,43 @@ def get_redis_connection_config(port: int = None) -> dict:
     return {"host": host, "port": port, "db": db, "socket_timeout": socket_timeout}
 
 
-def get_redis_connection_string(port: int = None) -> str:
-    """Get Redis connection string from environment variables.
+def get_redis_connection_string(port: int | None = None) -> str:
+    """Get Redis connection URL from environment variables.
 
     Args:
         port: Optional port override. If not specified, uses REDIS_PORT from environment.
     """
     config = get_redis_connection_config(port)
-    return f"redis://{config['host']}:{config['port']}"
+    return f"redis://{config['host']}:{config['port']}/{config['db']}"
 
 
 def get_featuremesh_config() -> dict:
     """Get FeatureMesh service configuration from environment variables."""
+    registry_token = getenv_or_raise("FEATUREMESH_REGISTRY_TOKEN")
     return {
         "managed.host": getenv_or_raise("FEATUREMESH_REGISTRY_URL"),
         "access.host": getenv_or_raise("FEATUREMESH_REGISTRY_URL"),
         "serving.host": getenv_or_raise("FEATUREMESH_SERVING_URL"),
-        "service_account_token": getenv_or_raise("FEATUREMESH_REGISTRY_TOKEN"),
+        "service_account_token": registry_token,
+        # Alias used by notebooks / older call sites
+        "access_token": registry_token,
         "identity_token": getenv_or_raise("FEATUREMESH_IDENTITY_TOKEN"),
     }
 
 
 def get_trino_config() -> dict:
-    """Get Trino configuration from environment variables."""
-    return {"host": "host.docker.internal", "port": 8081}
+    """Get Trino configuration from environment variables.
+
+    Defaults match the demos Docker Compose Trino service
+    (``host.docker.internal:8081``, catalog ``memory``).
+    """
+    return {
+        "host": os.getenv("TRINO_HOST", "host.docker.internal"),
+        "port": int(os.getenv("TRINO_PORT", "8081")),
+        "user": os.getenv("TRINO_USER", "admin"),
+        "catalog": os.getenv("TRINO_CATALOG", "memory"),
+        "schema": os.getenv("TRINO_SCHEMA", "default"),
+    }
 
 
 def get_bigquery_config() -> dict:
@@ -92,22 +107,23 @@ def get_ml_service_config() -> dict:
     }
 
 
-def pprint(stuff, as_string: bool = False) -> str | None:
+def pprint(stuff: Any, as_string: bool = False) -> str | None:
+    """Pretty-print JSON-serializable data (or a string) to stdout."""
     string = (
         stuff if isinstance(stuff, str) else json.dumps(stuff, sort_keys=True, indent=4)
     )
     if as_string:
         return string
-    else:
-        print(string)
+    print(string)
     return None
 
 
-def nprint(stuff: Any, num_lines: bool = True, as_string: bool = False) -> None | str:
+def nprint(stuff: Any, num_lines: bool = True, as_string: bool = False) -> str | None:
+    """Print a multi-line string with optional 1-based line numbers."""
     try:
         formatted_stuff = "\n".join(
             [
-                ":  ".join([f"{nline+1:_>6}", line]) if num_lines else line
+                ":  ".join([f"{nline + 1:_>6}", line]) if num_lines else line
                 for nline, line in enumerate(textwrap.dedent(stuff).strip().split("\n"))
             ]
         )
