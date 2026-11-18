@@ -14,7 +14,6 @@ from pathlib import Path
 import featuremesh
 import pandas as pd
 from featuremesh import (
-    Backend,
     BatchClient,
     RegistryDeployment,
     ServingClient,
@@ -24,8 +23,8 @@ from featuremesh import (
 from libs.helpers.serving_executors import make_serving_executors
 from libs.helpers.utils import (
     get_featuremesh_config,
-    get_postgres_connection_string,
-    get_redis_connection_string,
+    get_postgres_url,
+    get_redis_url,
 )
 from libs.helpers.utils_db import (
     query_bigquery,
@@ -53,45 +52,46 @@ featuremesh.set_default("serving", ServingDeployment.ONPREM)
 featuremesh.set_default("managed.host", fm_config["managed.host"])
 featuremesh.set_default("access.host", fm_config["access.host"])
 featuremesh.set_default("serving.host", fm_config["serving.host"])
-featuremesh.set_default("managed.timeout", 10)
-featuremesh.set_default("serving.timeout", 10)
+featuremesh.set_default("managed.timeout", 30)
+featuremesh.set_default("serving.timeout", 30)
 
 # featuremesh.set_default("registry", RegistryDeployment.LOCAL)
 # featuremesh.set_default("local.db_path", "data/my_project.db")
 
 # Product DuckDB (SQLGlot) + temporary Jinja DuckDB reference for comparisons.
-client_duckdb = BatchClient(access_token, Backend.DUCKDB, query_duckdb)
-client_jj_duckdb = BatchClient(access_token, Backend.JJ_DUCKDB, query_duckdb)
-client_trino = BatchClient(access_token, Backend.TRINO, query_trino)
-client_bigquery = BatchClient(access_token, Backend.BIGQUERY, query_bigquery)
+client_duckdb = BatchClient(access_token, "duckdb", query_duckdb)
+client_jj_duckdb = BatchClient(access_token, "jj_duckdb", query_duckdb)
+client_trino = BatchClient(access_token, "trino", query_trino)
+client_bigquery = BatchClient(access_token, "bigquery", query_bigquery)
 
-CLIENTS: dict[Backend, BatchClient] = {
-    Backend.DUCKDB: client_duckdb,
-    Backend.JJ_DUCKDB: client_jj_duckdb,
-    Backend.TRINO: client_trino,
-    Backend.BIGQUERY: client_bigquery,
+CLIENTS: dict[str, BatchClient] = {
+    "duckdb": client_duckdb,
+    "jj_duckdb": client_jj_duckdb,
+    "trino": client_trino,
+    "bigquery": client_bigquery,
 }
 
-SERVING_CLIENTS: dict[Backend, ServingClient] = {
-    Backend.SERVING: ServingClient(access_token=access_token),
+SERVING_CLIENTS: dict[str, ServingClient] = {
+    "serving": ServingClient(access_token=access_token),
 }
 
 # Named fixture backends for SLT ``using postgres|redis|sqlite`` (HTTP /sltest*).
 SERVING_EXECUTORS = make_serving_executors(
-    postgres=get_postgres_connection_string(),
-    redis=get_redis_connection_string(),
+    postgres=get_postgres_url(),
+    redis=get_redis_url(),
     sqlite=os.getenv("SQLITE_STORAGE_PATH", ":memory:"),
 )
 
-# HTTP (:8101) and MCP (:8100) request logs — ``{time}_{api|mcp}_{endpoint}_{ok|fail}.txt``
+# HTTP (:18101) and MCP (:18100) request logs — ``{time}_{api|mcp}_{endpoint}_{ok|fail}.txt``
 REQUEST_LOG_DIRECTORY = Path(__file__).resolve().parent.parent.parent / "logs"
 REQUEST_LOG_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 CAPABILITIES_NOTES = [
     "ServingClient: backend=serving on POST /query and productivity APIs "
     "(translate / validate / describe / help / diagnose / sltest / sltest_multi).",
-    "Prefer separate processes: `just api-server` (8101) and `just mcp-server` (8100).",
-    "Optional single process: `python libs/server/all_servers.py` or `just batch-server`.",
+    "Prefer separate processes: `uvicorn libs.server.api_server:app --port 18101` and "
+    "`python libs/server/mcp_server.py` (18100).",
+    "Optional single process: `python libs/server/all_servers.py`.",
     "POST /sltest returns JSON; POST /sltest_stream streams SSE; "
     "POST /sltest_multi runs the suite on execute_backends (flat list[dict]).",
     "POST /query accepts timeit=true (duckdb only) for stable execution benchmarks.",

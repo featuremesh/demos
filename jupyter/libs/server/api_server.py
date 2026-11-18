@@ -1,4 +1,4 @@
-"""FastAPI batch API — run with ``uvicorn libs.server.api_server:app`` (port 8101).
+"""FastAPI batch API — run with ``uvicorn libs.server.api_server:app`` (port 18101).
 
 Endpoints
 ---------
@@ -34,7 +34,7 @@ app = create_batch_client_app(
         "HTTP Batch API: POST /query, /translate, /validate, /describe, /help; "
         "SLT /sltest and /sltest_stream. POST /query accepts timeit=true (duckdb) "
         "for stable execution benchmarks. "
-        "Run MCP separately on :8100 for the same CLIENTS."
+        "Run MCP separately on :18100 for the same CLIENTS."
     ),
     version="2.2",
     logger=logger,
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     import uvicorn
 
     logger.info(
-        "Starting HTTP server on :8101 (featuremesh %s) — run MCP separately on :8100",
+        "Starting HTTP server on :18101 (featuremesh %s) — run MCP separately on :18100",
         featuremesh.__version__,
     )
-    uvicorn.run(app, host="0.0.0.0", port=8101)
+    uvicorn.run(app, host="0.0.0.0", port=18101)

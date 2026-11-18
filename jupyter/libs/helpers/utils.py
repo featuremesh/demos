@@ -1,6 +1,7 @@
 from typing import Any
 import json
 import os
+from urllib.parse import quote
 import textwrap
 
 # Environment variables are injected by Docker via env_file in docker-compose.yml
@@ -15,31 +16,28 @@ def getenv_or_raise(var_name: str) -> str:
     return value
 
 
-def get_postgres_connection_string() -> str:
-    """Get PostgreSQL connection string from environment variables."""
-    host = getenv_or_raise("POSTGRES_HOST")
-    port = getenv_or_raise("POSTGRES_PORT")
-    user = getenv_or_raise("POSTGRES_USER")
-    password = getenv_or_raise("POSTGRES_PASSWORD")
-    database = getenv_or_raise("POSTGRES_DATABASE")
-    ssl_mode = getenv_or_raise("DB_SSL_MODE")
-
-    return f"postgresql://{user}:{password}@{host}:{port}/{database}?sslmode={ssl_mode}"
-
-
-def get_mysql_connection_string() -> str:
-    """Get MySQL connection string from environment variables."""
-    host = getenv_or_raise("MYSQL_HOST")
-    port = getenv_or_raise("MYSQL_PORT")
-    user = getenv_or_raise("MYSQL_USER")
-    password = getenv_or_raise("MYSQL_PASSWORD")
-    database = getenv_or_raise("MYSQL_DATABASE")
-
-    return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+def get_postgres_connect_kwargs() -> dict:
+    """``psycopg2.connect`` kwargs from the environment (batch executor)."""
+    return {
+        "host": getenv_or_raise("POSTGRES_HOST"),
+        "port": int(getenv_or_raise("POSTGRES_PORT")),
+        "user": getenv_or_raise("POSTGRES_USER"),
+        "password": getenv_or_raise("POSTGRES_PASSWORD"),
+        "dbname": getenv_or_raise("POSTGRES_DATABASE"),
+        "sslmode": getenv_or_raise("DB_SSL_MODE"),
+    }
 
 
-def get_redis_connection_config(port: int | None = None) -> dict:
-    """Get Redis connection configuration from environment variables.
+def get_postgres_url() -> str:
+    """PostgreSQL connection URL (``postgresql://...``) from the environment: for serving executors,
+    FeatureMesh sources, SQLAlchemy and ADBC."""
+    c = get_postgres_connect_kwargs()
+    user, password = quote(c["user"], safe=""), quote(c["password"], safe="")
+    return f"postgresql://{user}:{password}@{c['host']}:{c['port']}/{c['dbname']}?sslmode={c['sslmode']}"
+
+
+def _redis_connect_kwargs(port: int | None = None) -> dict:
+    """``redis.Redis`` kwargs from the environment, which ``get_redis_url`` builds on.
 
     Args:
         port: Optional port override. If not specified, uses REDIS_PORT from environment.
@@ -53,13 +51,13 @@ def get_redis_connection_config(port: int | None = None) -> dict:
     return {"host": host, "port": port, "db": db, "socket_timeout": socket_timeout}
 
 
-def get_redis_connection_string(port: int | None = None) -> str:
-    """Get Redis connection URL from environment variables.
+def get_redis_url(port: int | None = None) -> str:
+    """Redis connection URL (``redis://...``) from the environment: for FeatureMesh sources.
 
     Args:
         port: Optional port override. If not specified, uses REDIS_PORT from environment.
     """
-    config = get_redis_connection_config(port)
+    config = _redis_connect_kwargs(port)
     return f"redis://{config['host']}:{config['port']}/{config['db']}"
 
 
@@ -77,23 +75,23 @@ def get_featuremesh_config() -> dict:
     }
 
 
-def get_trino_config() -> dict:
-    """Get Trino configuration from environment variables.
+def get_trino_connect_kwargs() -> dict:
+    """``trino.dbapi.connect`` kwargs from the environment.
 
     Defaults match the demos Docker Compose Trino service
-    (``host.docker.internal:8081``, catalog ``memory``).
+    (``host.docker.internal:28080``, catalog ``memory``).
     """
     return {
         "host": os.getenv("TRINO_HOST", "host.docker.internal"),
-        "port": int(os.getenv("TRINO_PORT", "8081")),
+        "port": int(os.getenv("TRINO_PORT", "28080")),
         "user": os.getenv("TRINO_USER", "admin"),
         "catalog": os.getenv("TRINO_CATALOG", "memory"),
         "schema": os.getenv("TRINO_SCHEMA", "default"),
     }
 
 
-def get_bigquery_config() -> dict:
-    """Get BigQuery configuration from environment variables."""
+def get_bigquery_connect_kwargs() -> dict:
+    """``bigquery.Client`` kwargs from the environment."""
     return {
         "project": getenv_or_raise("BIGQUERY_PROJECT"),
     }

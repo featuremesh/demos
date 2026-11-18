@@ -1,4 +1,4 @@
-"""MCP FastMCP server — run with ``python libs/server/mcp_server.py`` (SSE on :8100)."""
+"""MCP FastMCP server — run with ``python libs/server/mcp_server.py`` (SSE on :18100)."""
 
 from __future__ import annotations
 
@@ -22,12 +22,12 @@ mcp = create_batch_client_mcp(
     sql_executor=SQL_EXECUTOR,
     request_log_directory=REQUEST_LOG_DIRECTORY,
     host="0.0.0.0",
-    port=8100,
+    port=18100,
 )
 
 __all__ = ["mcp"]
 
 
 if __name__ == "__main__":
-    print("Starting MCP server on :8100 (run HTTP API separately on :8101)")
+    print("Starting MCP server on :18100 (run HTTP API separately on :18101)")
     mcp.run(transport="sse")

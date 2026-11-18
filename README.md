@@ -1,6 +1,9 @@
-# FeatureMesh Demos - Public Edition
+# FeatureMesh demos
 
-A simplified, all-in-one Docker Compose setup for running FeatureMesh demos with all required services.
+An all-in-one Docker Compose setup to run the FeatureMesh and FeatureQL demos on your machine.
+
+New to FeatureQL? Start with the documentation at https://docs.featuremesh.com, or try it in your
+browser with Google Colab (links in the docs). This repository is for running the full stack locally.
 
 ## What's Included
 
@@ -25,7 +28,6 @@ Get up and running in 5 minutes!
 ### Step 1: Get Your Credentials
 
 You'll need:
-- `FEATUREMESHD_IMAGE` - The FeatureMesh daemon Docker image URL
 - `FEATUREMESH_REGISTRY_TOKEN` - Your service account token for featuremeshd access to registry
 - `FEATUREMESH_IDENTITY_TOKEN` - Your identity token (optional, for project-specific access in notebooks)
 
@@ -33,15 +35,14 @@ You'll need:
 
 ```bash
 # Copy the example environment file
-cp env.example .env
+cp .env.example .env
 
 # Edit .env and add your credentials
 nano .env  # or use your favorite editor
 ```
 
-Update these lines in `.env`:
+Update these lines in `.env` (`FEATUREMESHD_IMAGE` already defaults to the public image):
 ```bash
-FEATUREMESHD_IMAGE=your-image-url-here
 FEATUREMESH_REGISTRY_TOKEN=your-token-here # service account token
 FEATUREMESH_IDENTITY_TOKEN=your-identity-token-here  # identity token
 ```
@@ -63,7 +64,7 @@ This will:
 
 Open your browser to:
 ```
-http://localhost:8881/lab
+http://localhost:18881/lab
 ```
 
 This will automatically log you in to Jupyter Lab.
@@ -74,13 +75,13 @@ Once running, you can access:
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Jupyter Lab | http://localhost:8881 | Interactive notebooks |
+| Jupyter Lab | http://localhost:18881 | Interactive notebooks |
 | FeatureMesh Serving | http://localhost:10090 | HTTP API for queries |
 | FeatureMesh Proxy | http://localhost:10080 | Proxy for data sources |
-| Trino | http://localhost:8081 | Query engine UI |
-| PostgreSQL | localhost:5433 | Database (user: featuremesh, pass: featuremesh) |
-| Redis | localhost:6380 | Cache |
-| FastAPI | http://localhost:8010 | HTTP endpoint |
+| Trino | http://localhost:28080 | Query engine UI |
+| PostgreSQL | localhost:25432 | Database (user: featuremesh, pass: featuremesh) |
+| Redis | localhost:26379 | Cache |
+| FastAPI | http://localhost:18010 | HTTP endpoint |
 
 ## Verify Everything Works
 
@@ -146,11 +147,11 @@ docker compose up -d --build jupyter
 You can customize ports in your `.env` file:
 
 ```bash
-POSTGRES_PORT=5433
-REDIS_PORT=6380
-TRINO_PORT=8081
-FASTAPI_PORT=8010
-JUPYTER_PORT=8881
+POSTGRES_PORT=25432
+REDIS_PORT=26379
+TRINO_PORT=28080
+FASTAPI_PORT=18010
+JUPYTER_PORT=18881
 ```
 
 ## Troubleshooting
@@ -159,8 +160,8 @@ JUPYTER_PORT=8881
 
 If you see "port is already allocated":
 ```bash
-# Check what's using the port (example for 8881)
-lsof -i :8881
+# Check what's using the port (example for 18881)
+lsof -i :18881
 
 # Either stop that service or change the port in .env
 ```
@@ -176,8 +177,8 @@ docker info
 
 1. Check if ports are already in use:
    ```bash
-   lsof -i :8881  # Check Jupyter port
-   lsof -i :5433  # Check PostgreSQL port
+   lsof -i :18881  # Check Jupyter port
+   lsof -i :25432  # Check PostgreSQL port
    ```
 
 2. Check service logs:
@@ -194,9 +195,9 @@ docker info
 ### FeatureMeshd fails to start
 
 - Verify your credentials in `.env` are correct
-- Check you have access to the FeatureMesh registry:
+- Check the image can be pulled:
   ```bash
-  docker login ghcr.io/featuremesh/featuremeshd:latest
+  docker pull ghcr.io/featuremesh/featuremeshd:latest
   ```
 
 ### Jupyter can't connect to databases
@@ -222,17 +223,30 @@ docker compose up -d
 
 ## Next Steps
 
-1. **Explore the notebooks** in Jupyter Lab at http://localhost:8881
-2. **Check the demos** in the `notebooks/demos` directory
-3. **Read the FeatureMesh documentation** for advanced features
+1. **Explore the notebooks** in Jupyter Lab at http://localhost:18881
+2. **Open the tutorials** in the `jupyter/notebooks/tutorials` directory
+3. **Read the documentation** at https://docs.featuremesh.com
+
+## Ports
+
+| Port | Service |
+|---|---|
+| 18881 | Jupyter Lab |
+| 18100 | FeatureMesh MCP server |
+| 18101 | FeatureMesh API server (used by the notebooks) |
+| 10080 / 10090 | featuremeshd proxy / serving |
+
+BigQuery demos also need `BIGQUERY_PROJECT` in `.env`.
 
 ## Support
 
 For issues or questions:
 - Check the troubleshooting section above
 - Review logs: `docker compose logs -f`
-- Contact your FeatureMesh administrator
+- Open an issue on this repository, or write to hello@featuremesh.com
 
 ## License
 
-See LICENSE file for details.
+The demo code, notebooks and configuration in this repository are under the MIT license (see
+`LICENSE`). The FeatureMesh software they run, the `featuremesh` Python package and the featuremeshd
+image, is not covered by it: each ships with its own proprietary license.

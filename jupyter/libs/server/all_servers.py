@@ -1,8 +1,8 @@
-"""Optional single process: HTTP :8101 + MCP :8100 in one interpreter (MCP runs in a thread).
+"""Optional single process: HTTP :18101 + MCP :18100 in one interpreter (MCP runs in a thread).
 
-Prefer two terminals: ``just api-server`` and ``just mcp-server`` for clearer isolation.
+Prefer two processes (``libs.server.api_server`` and ``libs/server/mcp_server.py``) for clearer isolation.
 
-Run: ``python libs/server/all_servers.py`` or ``just batch-server``.
+Run: ``python libs/server/all_servers.py``.
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ _bundle = create_batch_client_server_bundle(
         "health_server_label": "featureql-api",
         "serving_executors": SERVING_EXECUTORS,
         "capabilities_notes": [
-            "This is the combined all_servers process (HTTP 8101 + MCP thread 8100).",
+            "This is the combined all_servers process (HTTP 18101 + MCP thread 18100).",
             *CAPABILITIES_NOTES,
         ],
     },
@@ -56,7 +56,7 @@ __all__ = ["app", "mcp"]
 
 if __name__ == "__main__":
     logger.info(
-        "Starting combined servers (MCP 8100 thread, HTTP 8101) featuremesh %s",
+        "Starting combined servers (MCP 18100 thread, HTTP 18101) featuremesh %s",
         featuremesh.__version__,
     )
-    run_batch_client_server_bundle(_bundle, http_port=8101, mcp_transport="sse")
+    run_batch_client_server_bundle(_bundle, http_port=18101, mcp_transport="sse")

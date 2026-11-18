@@ -11,29 +11,29 @@ proxy:
       middlewares:
         - name: debug
           tags: ["ingress"]
-          config: '{"level":"Body"}'
+          config: '{"level":"Basic"}'
         - name: bigquery
         - name: debug
           tags: ["egress"]
-          config: '{"level":"Body"}'
+          config: '{"level":"Basic"}'
     - domain: "www.googleapis.com"
       target:
         address: "www.googleapis.com:443"
         tls: true
       middlewares:
         - name: debug
-          config: '{"level":"Body"}'
+          config: '{"level":"Basic"}'
     - domain: "trino:8080"
       target:
         address: "trino:8080"
       middlewares:
         - name: debug
           tags: ["ingress"]
-          config: '{"level":"Body"}'
+          config: '{"level":"Basic"}'
         - name: trino
         - name: debug
           tags: ["egress"]
-          config: '{"level":"Body"}'
+          config: '{"level":"Basic"}'
 
 serving:
   enabled: true
@@ -45,24 +45,24 @@ serving:
   http:
     enabled: true
     address: "0.0.0.0:10090"
-    debug_endpoints: true
+    debug_endpoints: false
   grpc:
     enabled: true
     address: "0.0.0.0:10091"
   flight:
     enabled: true
-    address: "0.0.0.0:15000"
+    address: "0.0.0.0:10093"
     catalog:
       poll_interval: "5s"
 
 mcp:
   enabled: true
-  address: "0.0.0.0:10050"
+  address: "0.0.0.0:10092"
   serving_endpoint: "http://0.0.0.0:10090/"
 
 health:
   enabled: true
-  address: "0.0.0.0:10001"
+  address: "0.0.0.0:10094"
 
 telemetry:
   service_name: "featuremeshd"

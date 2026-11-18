@@ -11,7 +11,7 @@ import urllib3
 from datafusion import SessionContext
 from google.cloud import bigquery
 
-from .utils import get_bigquery_config, get_postgres_connection_string, get_trino_config
+from .utils import get_bigquery_connect_kwargs, get_postgres_connect_kwargs, get_trino_connect_kwargs
 
 _SQL_CHUNK_SEPARATOR = re.compile(r"(?m)^--\s*$")
 
@@ -30,7 +30,7 @@ class Trino:
 
     @classmethod
     def get_trino_details(cls):
-        trino_config = get_trino_config()
+        trino_config = get_trino_connect_kwargs()
         trino_details = {
             "host": trino_config["host"],
             "port": trino_config["port"],
@@ -71,7 +71,7 @@ def query_trino(*args, **kwargs):
     return Trino.query(*args, **kwargs)
 
 def query_bigquery(query: str):
-    client = bigquery.Client(project=get_bigquery_config()['project'])
+    client = bigquery.Client(project=get_bigquery_connect_kwargs()['project'])
     return client.query(query).to_dataframe()
 
 def query_datafusion(sql):
@@ -108,6 +108,12 @@ def get_duckdb_conn(storage_path: str = ":memory:"):
             conn = duckdb.connect(storage_path)
             conn.execute("INSTALL spatial;")
             conn.execute("LOAD spatial;")
+            # GEOGRAPHY measurements and predicates run on the sphere through S2 (s2_* functions).
+            conn.execute("INSTALL geography FROM community;")
+            conn.execute("LOAD geography;")
+            # DuckDB 2.0 refuses ST_*_Spheroid until the axis order is chosen. false keeps the
+            # pre-2.0 [latitude, longitude] reading for hand-written SQL; FeatureQL SQL does not depend on it.
+            conn.execute("SET geometry_always_xy = false;")
             _duckdb_conns[key] = conn
         return conn
 
@@ -223,21 +229,21 @@ def query_sqlite(query: str, mode: str = "DATAFRAME", storage_path: str = ":memo
 
 # Process-wide Postgres connection (unlike DuckDB, which is per-thread).
 _postgres_conn = None
-_postgres_connection_string: str | None = None
+_postgres_fingerprint: str | None = None
 
 
 def get_postgres_conn(connection_string: str | None = None):
-    global _postgres_conn, _postgres_connection_string
-    resolved_connection_string = connection_string or get_postgres_connection_string()
-    if (
-        _postgres_conn is None
-        or _postgres_connection_string != resolved_connection_string
-    ):
+    """The shared connection: to *connection_string* (serving executors pass a URL), else from
+    ``get_postgres_connect_kwargs()``."""
+    global _postgres_conn, _postgres_fingerprint
+    kwargs = None if connection_string else get_postgres_connect_kwargs()
+    fingerprint = connection_string or repr(sorted(kwargs.items()))
+    if _postgres_conn is None or _postgres_fingerprint != fingerprint:
         import psycopg2
 
-        _postgres_conn = psycopg2.connect(resolved_connection_string)
+        _postgres_conn = psycopg2.connect(connection_string) if connection_string else psycopg2.connect(**kwargs)
         _postgres_conn.autocommit = True
-        _postgres_connection_string = resolved_connection_string
+        _postgres_fingerprint = fingerprint
     return _postgres_conn
 
 

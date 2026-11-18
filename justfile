@@ -99,9 +99,9 @@ test-connections:
     echo -n "FeatureMeshd: "
     curl -sf http://localhost:10090/health > /dev/null && echo "✅" || echo "❌"
     echo -n "Jupyter: "
-    curl -sf http://localhost:8881/api > /dev/null && echo "✅" || echo "❌"
+    curl -sf http://localhost:18881/api > /dev/null && echo "✅" || echo "❌"
     echo -n "FastAPI: "
-    curl -sf http://localhost:8010/health > /dev/null && echo "✅" || echo "❌"
+    curl -sf http://localhost:18010/health > /dev/null && echo "✅" || echo "❌"
     echo -n "Trino: "
-    curl -sf http://localhost:8081/v1/info > /dev/null && echo "✅" || echo "❌"
+    curl -sf http://localhost:28080/v1/info > /dev/null && echo "✅" || echo "❌"
 

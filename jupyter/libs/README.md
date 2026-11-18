@@ -9,21 +9,23 @@ This tree is copied into the public [demos](https://github.com/featuremesh/demos
 |---|---|
 | `helpers/utils.py` | Env-based connection / FeatureMesh config helpers |
 | `helpers/utils_db.py` | `query_duckdb` / Trino / Postgres / SQLite / … |
-| `helpers/serving_executors.py` | Named SLT fixture executors (`using postgres\|redis\|sqlite`) |
-| `helpers/utils_featureql_api.py` | HTTP clients for `:8101` (`/sltest`, `/sltest_stream`, …) |
+| `helpers/serving_executors.py` | Named serving fixture executors (Postgres / Redis / SQLite) used by the serving tutorials |
 | `helpers/utils_notebook.py` | Small IPython helpers |
+| `eval/` | Public OpenRouter eval harness (`python -m libs.eval`) |
 | `server/shared.py` | **Edit here** — registry URL, token, backends, executors |
-| `server/api_server.py` | HTTP Batch API on `:8101` |
-| `server/mcp_server.py` | MCP SSE server on `:8100` |
+| `server/api_server.py` | HTTP Batch API on `:18101` |
+| `server/mcp_server.py` | MCP SSE server on `:18100` |
 | `server/all_servers.py` | Optional combined process (HTTP + MCP thread) |
 
 ## Quick start
 
-1. Copy `env.example` → `.env` and set tokens / hosts.
+1. Copy `.env.example` → `.env` and set tokens / hosts.
 2. Start servers from the demos Jupyter environment:
-   - `just api-server` and `just mcp-server` (preferred), or
-   - `just batch-server` / `python libs/server/all_servers.py`
+   - `python -m uvicorn libs.server.api_server:app --host 0.0.0.0 --port 18101` and
+     `python libs/server/mcp_server.py` (preferred), or
+   - `python libs/server/all_servers.py` (both in one process)
 3. In notebooks: `from libs.helpers.utils_db import query_duckdb` (and siblings).
+4. Eval harness: `python -m libs.eval --help`.
 
 ## Serving fixtures
 
